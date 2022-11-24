@@ -44,6 +44,13 @@ class Showtimes(Base,db.Model):
    movie_id= Column(Integer,ForeignKey("movies.id"))
    show = Column(String(150))
 
+class Tickets(Base,db.Model):
+   __tablename__ = 'tickets'
+   id = Column(Integer, primary_key=True)
+   show_id = Column(Integer,ForeignKey("showtimes.id"))
+   movie_id= Column(Integer,ForeignKey("movies.id"))
+   seat = Column(String)
+
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 session = Session()
@@ -111,7 +118,7 @@ def get_all_movies():
       'show': showss.show,
        }
        result_shows.append(user_data)
-       
+
    result = []   
 
    for movie in movies:   
@@ -121,7 +128,7 @@ def get_all_movies():
       'poster_url': movie.poster_url,
       'rate' : movie.rate,
       'shows' : {
-		      "showtimes":result_shows[1]
+		      "show":result_shows[1], 
 	         },
        }
        result.append(user_data)   
@@ -131,6 +138,10 @@ def get_all_movies():
 @app.route('/purchase', methods=['post'])
 @token_required
 def purchase_tickets():
+   data = request.get_json()
+   new_ticket = Tickets(show_id=data['show_id'],movie_id=data['movie_id'],seat=data['seat'])
+   db.session.add(new_ticket)
+   db.session.commit()
    return jsonify({'message': 'Your ticket was purchased'})
 
 @app.route('/check', methods=['delete'])
