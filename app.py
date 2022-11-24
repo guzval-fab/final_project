@@ -36,7 +36,7 @@ class Movies(Base, db.Model):
    title= Column(String(150),nullable=False)
    poster_url= Column(String(150),nullable=False)
    rate = Column(String(150),nullable=False)
-   schedules = relationship("Showtimes")
+   schedules = relationship("Showtimes", backref="shows")
 
 class Showtimes(Base,db.Model):
    __tablename__ = 'showtimes'
@@ -52,17 +52,17 @@ def token_required(f):
    @wraps(f)
    def decorator(*args, **kwargs):
 
-      if 'x-access-tokens' in request.headers:
-         token = request.headers['x-access-tokens']
+      if 'tokens' in request.headers:
+         token = request.headers['tokens']
 
       if not token:
-         return jsonify({'message': 'a valid token is missing'})
+         return jsonify({'message': 'a valid token is missing'}), 400
 
       try:
            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
-         #current_user = Users.query.filter_by(public_id=data['public_id']).first()
+         
       except:
-         return jsonify({'message': 'token is invalid'})
+         return jsonify({'message': 'token is invalid'}), 400
 
       return f( *args, **kwargs)
    return decorator
@@ -85,25 +85,22 @@ def login_user():
   auth = request.authorization   
 
   if not auth or not auth.username or not auth.password:  
-     return make_response('could not verify', 401, {'WWW.Authentication': 'Basic realm: "login required"'})    
+     return jsonify({'Unable to login': 'email or password missing!!'}), 400    
 
   with engine.connect() as con:
     user = con.execute(f"select * from users where email = '{auth.username}'").one()
-    print(user)
-   
-  #user = Users.query.filter_by(name=auth.username).first()   
-     
+       
   if check_password_hash(user[6], auth.password):  
      token = jwt.encode({'public_id': user[1], 'exp' : datetime.datetime.utcnow() + datetime.timedelta(minutes=30)}, app.config['SECRET_KEY'])  
      return jsonify({'token' : token}) 
 
-  return make_response('could not verify',  401, {'WWW.Authentication': 'Basic realm: "login required"'})
+  return jsonify({'Unable to login': 'Either email or password incorrect'}), 400
 
 @app.route('/index', methods=['GET'])
 def get_all_movies():  
    #with engine.connect() as con:
     #movie = con.execute(f"select * from movies")
-   movies = Movies.query.all() 
+   movies = Movies.query.all()
 
    result = []   
 
@@ -113,7 +110,7 @@ def get_all_movies():
       'title' : movie.title, 
       'poster_url': movie.poster_url,
       'rate' : movie.rate,
-      'schedules' : {
+      'shows' : {
 		      #"id":movie.schedules.id,
 		      #"movie_id":movie.schedules.movie_id,
 		      #"show":movie.schedules.show,
@@ -126,17 +123,17 @@ def get_all_movies():
 @app.route('/purchase', methods=['post'])
 @token_required
 def purchase_tickets():
-   return "ticket was purchased"
+   return jsonify({'message': 'Your ticket was purchased'})
 
 @app.route('/check', methods=['delete'])
 @token_required
 def check_tickets():
-   return "You currently have: "
+   return jsonify({'message': 'You currently have tickets: '})
 
 @app.route('/cancel', methods=['delete'])
 @token_required
 def cancel_tickets():
-   return "Your ticket was canceled"
+   return jsonify({'message': 'You\'ve successfully cancelled your ticket: '})
 
 
 if __name__ == "__main__":
