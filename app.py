@@ -101,7 +101,17 @@ def get_all_movies():
    #with engine.connect() as con:
     #movie = con.execute(f"select * from movies")
    movies = Movies.query.all()
+   showtimes = Showtimes.query.all()
+   result_shows = []   
 
+   for showss in showtimes:   
+       user_data = {   
+      'id' : showss.id, 
+      'id_movie' : showss.movie_id, 
+      'show': showss.show,
+       }
+       result_shows.append(user_data)
+       
    result = []   
 
    for movie in movies:   
@@ -111,9 +121,7 @@ def get_all_movies():
       'poster_url': movie.poster_url,
       'rate' : movie.rate,
       'shows' : {
-		      #"id":movie.schedules.id,
-		      #"movie_id":movie.schedules.movie_id,
-		      #"show":movie.schedules.show,
+		      "showtimes":result_shows[1]
 	         },
        }
        result.append(user_data)   
